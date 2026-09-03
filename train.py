@@ -1,43 +1,59 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from datasets import load_dataset
 from tokenizer import SimpleTokenizer
 from dataset import CodeDataset
 from model import Transformer, generate_causal_mask
 
 # ==========================================
-# 1. SETUP AND HYPERPARAMETERS
+# 1. SETUP AND HUGGING FACE DATASET (C++ SWAP)
 # ==========================================
-# Dummy data featuring algorithmic logic
-english_data = [
-    "Initialize a vector of integers and sort it in ascending order",
-    "Implement a binary search function for a sorted array"
-]
-cpp_data = [
-    "std :: vector < int > v ; std :: sort ( v . begin ( ) , v . end ( ) ) ;",
-    "int binarySearch ( int arr [ ] , int l , int r , int x ) { }"
-]
+print("Downloading multi-language dataset from Hugging Face...")
+# Loading a larger multi-language instruction dataset
+raw_dataset = load_dataset("TokenBender/code_instructions_122k_alpaca_style", split="train")
+
+english_data = []
+cpp_data = []
+
+print("Filtering strictly for C++ algorithmic data...")
+for row in raw_dataset:
+    prompt = row['instruction']
+    code = row['output']
+    
+    # Force the dataset to only grab C++ related instructions
+    if "c++" in prompt.lower() or "cpp" in prompt.lower():
+        # Keep sequences manageable for the space-based tokenizer
+        if len(prompt.split()) < 40 and len(code.split()) < 50:
+            english_data.append(prompt)
+            cpp_data.append(code)
+
+# Limit to 2000 to keep the Colab RAM stable during vocabulary building
+english_data = english_data[:2000]
+cpp_data = cpp_data[:2000]
+
+print(f"Successfully extracted {len(english_data)} C++ logic pairs.")
 
 eng_tokenizer = SimpleTokenizer()
 cpp_tokenizer = SimpleTokenizer()
 eng_tokenizer.build_vocab(english_data)
 cpp_tokenizer.build_vocab(cpp_data)
 
-# Automatically detect your ASUS TUF F15's GTX GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}\n")
 
-seq_len = 25
-batch_size = 2
+# Increase sequence length to handle verbose C++ syntax
+seq_len = 60       
+batch_size = 16    
 
-# Transformer parameters
+# T4 GPU Transformer parameters
 d_model = 512
 num_heads = 8
-num_layers = 2  # Reduced from 6 for a rapid local test
+num_layers = 4     
 d_ff = 2048
 dropout = 0.1
 lr = 1e-4
-epochs = 10
+epochs = 20
 
 # ==========================================
 # 2. INITIALIZATION
