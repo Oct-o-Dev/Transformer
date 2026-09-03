@@ -83,3 +83,35 @@ tmp/
 temp/
 
 *.json
+
+# Hugging Face & PyTorch caches
+.cache/
+**/.cache/
+hf_cache/
+huggingface/
+
+# Model weights & checkpoints
+*.pth
+*.pt
+*.bin
+*.safetensors
+*.onnx
+
+# Python byte-code and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env/
+env/
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
+temp/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
